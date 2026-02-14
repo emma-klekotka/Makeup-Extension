@@ -31,9 +31,15 @@ function getScoreNumber(scoreStr: string): number {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return '#4caf50'
-  if (score >= 50) return '#ff9800'
-  return '#f44336'
+  if (score > 75) return '#8a9a7b'
+  if (score > 50) return '#b8a89a'
+  return '#c4868a'
+}
+
+function getScoreLabel(score: number): string {
+  if (score > 75) return 'High'
+  if (score > 50) return 'Medium'
+  return 'Low'
 }
 
 function getCategoryEmoji(category: string): string {
@@ -49,6 +55,7 @@ function App() {
   const url = useCurrentTabUrl()
   const [geminiResponse, setGeminiResponse] = useState<string | null>('')
   const [loading, setLoading] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (url) {
@@ -71,6 +78,7 @@ function App() {
   if (loading) {
     return (
       <div className="container">
+        <h1 className="app-title">Behind the Blush</h1>
         <div className="loading">
           <div className="spinner" />
           <p>Analyzing product...</p>
@@ -82,7 +90,7 @@ function App() {
   if (!result) {
     return (
       <div className="container">
-        <h1 className="app-title">Cruelty-Free Check</h1>
+        <h1 className="app-title">Behind the Blush</h1>
         {geminiResponse && geminiResponse.startsWith('Error:') ? (
           <p className="error-msg">{geminiResponse}</p>
         ) : (
@@ -94,6 +102,7 @@ function App() {
 
   return (
     <div className="container">
+      <h1 className="app-title">Behind the Blush</h1>
       <div className="product-header">
         <img
           className="product-photo"
@@ -106,28 +115,34 @@ function App() {
         </div>
       </div>
 
-      <div className="score-ring-wrapper">
-        <svg className="score-ring" viewBox="0 0 120 120">
-          <circle className="score-ring-bg" cx="60" cy="60" r="52" />
-          <circle
-            className="score-ring-fill"
-            cx="60"
-            cy="60"
-            r="52"
-            style={{
-              stroke: getScoreColor(totalScore),
-              strokeDasharray: `${(totalScore / 100) * 327} 327`,
-            }}
-          />
-        </svg>
-        <div className="score-ring-text">
-          <span className="score-number" style={{ color: getScoreColor(totalScore) }}>
+      <div className="meter-section">
+        <p className="score-title">Cruelty-Free Score</p>
+        <div className="meter-score-display">
+          <span className="meter-score-number" style={{ color: getScoreColor(totalScore) }}>
             {totalScore}
           </span>
-          <span className="score-label">/ 100</span>
+          <span className="meter-score-out-of">/ 100</span>
+        </div>
+        <div className="meter-track">
+          <div className="meter-zone meter-zone--low">Low</div>
+          <div className="meter-zone meter-zone--mid">Medium</div>
+          <div className="meter-zone meter-zone--high">High</div>
+          <div
+            className="meter-pointer"
+            style={{ left: `${totalScore}%` }}
+          >
+            <svg className="meter-pointer-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <path d="M6 8L0 0h12L6 8z" fill={getScoreColor(totalScore)} />
+            </svg>
+          </div>
+        </div>
+        <div className="meter-labels">
+          <span>0</span>
+          <span>50</span>
+          <span>75</span>
+          <span>100</span>
         </div>
       </div>
-      <p className="score-title">Cruelty-Free Score</p>
 
       <div className="breakdown">
         {Object.entries(result["Breakdown"]).map(([category, detail]) => {
@@ -135,32 +150,47 @@ function App() {
           const justification = detail.replace(/^\d+\/100:\s*/, '')
           const catLabel = category.replace(/\s*\(\d+%\)/, '')
           const weight = category.match(/\((\d+%)\)/)?.[1] || ''
+          const isOpen = expandedCategories.has(category)
+
+          const toggleCategory = () => {
+            setExpandedCategories(prev => {
+              const next = new Set(prev)
+              if (next.has(category)) next.delete(category)
+              else next.add(category)
+              return next
+            })
+          }
 
           return (
-            <div className="category-card" key={category}>
-              <div className="category-header">
+            <div className={`category-card ${isOpen ? 'category-card--open' : ''}`} key={category}>
+              <button className="category-toggle" onClick={toggleCategory}>
                 <span className="category-emoji">{getCategoryEmoji(category)}</span>
-                <div className="category-title-group">
-                  <span className="category-name">{catLabel}</span>
-                  {weight && <span className="category-weight">{weight}</span>}
-                </div>
+                <span className="category-name">{catLabel}</span>
+                {weight && <span className="category-weight">{weight}</span>}
                 <span
                   className="category-score"
                   style={{ color: getScoreColor(catScore) }}
                 >
                   {catScore}/100
                 </span>
+                <svg className={`category-chevron ${isOpen ? 'category-chevron--open' : ''}`} width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div className={`category-body ${isOpen ? 'category-body--open' : ''}`}>
+                <div className="category-body-inner">
+                  <div className="category-bar-track">
+                    <div
+                      className="category-bar-fill"
+                      style={{
+                        width: `${catScore}%`,
+                        backgroundColor: getScoreColor(catScore),
+                      }}
+                    />
+                  </div>
+                  <p className="category-detail">{justification}</p>
+                </div>
               </div>
-              <div className="category-bar-track">
-                <div
-                  className="category-bar-fill"
-                  style={{
-                    width: `${catScore}%`,
-                    backgroundColor: getScoreColor(catScore),
-                  }}
-                />
-              </div>
-              <p className="category-detail">{justification}</p>
             </div>
           )
         })}

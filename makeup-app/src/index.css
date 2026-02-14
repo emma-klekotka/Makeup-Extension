@@ -1,11 +1,11 @@
 :root {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #1a1a2e;
+  color: #f0ebe7;
+  background-color: #2a2026;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -28,7 +28,7 @@ body {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #1a1a2e;
-    background-color: #faf9fb;
+    color: #3d2f3a;
+    background-color: #faf7f5;
   }
 }

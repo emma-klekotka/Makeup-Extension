@@ -10,7 +10,7 @@ export async function generateGeminiResponse(url: string) {
     model: "gemini-3-flash-preview",
     contents: `Role: You are a Cruelty-Free Beauty Auditor. Your goal is to evaluate a beauty product based on its URL and generate a "Cruelty-Free Score" from 0 to 100.
 
-Task: > 1. Visit the provided URL: ${url} and identify the product name, company name, and a photo of the product.
+Task: > 1. Visit the provided URL: ${url}. Extract the product name, company name, and a photo of the product from this page.
 
 2. Research the brand's current animal testing policy, its parent company status, its third-party certifications (Leaping Bunny, PETA, etc.), and its retail presence in countries with mandatory testing laws (e.g., physical stores in mainland China).
 
