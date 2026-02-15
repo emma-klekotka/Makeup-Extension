@@ -194,7 +194,7 @@ function App() {
       </div>
 
       <div className="breakdown">
-        {result["Justification"].map((item) => {
+        {(result["Justification"] ?? []).map((item) => {
           const isOpen = expandedCategories.has(item.name)
 
           const toggleCategory = () => {
