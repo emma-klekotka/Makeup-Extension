@@ -31,17 +31,42 @@ def get_working_percent(country_name):
         data_json = raw_data.get('data', [])
         
         df = pd.DataFrame(data_json)
-        return df['working_percent'].iloc[0]
+        df_result = df['working_percent'].iloc[0]
+        return float(str(df_result).replace('%', ''))
 
     except Exception as e:
         print(f"Error occurred: {e}")
         return None
     
 def calculate_score(n):
-    return (n - 100) * -1
+    # calculate so anything higher tham 50% is a 0, after that each percent removes 2 from the score out of 100
+    if (n >= 50):
+        return 0
+    return int(100 - (n * 2))
 
+def countries_to_score(countries):
+    description = ""
+    country_list = [countries[0], countries[1]]
+    country_scores = []
+    final_score = -1
 
-result_df = get_working_percent("Brazil")
-if result_df is not None:
-    clean_number = float(str(result_df).replace('%', ''))
-    print(calculate_score(clean_number))
+    for country in country_list:
+        new_val = get_working_percent(country)
+        if (new_val != None): country_scores.append(new_val)
+    
+    if len(country_scores) == 0:
+        description += "Unfortunately no information was found on these countries"
+    else:
+        final_score = int(sum(country_scores) / len(country_scores))
+        description += "This score was created by evaluating the child labor practices of " + countries[0] + " and " + countries[1]
+        description += " using Department of Labor statistics."
+
+    report = {
+        "labor_score": final_score,
+        "labor_description": description
+    }
+    
+    return report
+
+#result2 = countries_to_score(['Chad', 'Somalia'])
+#print(result2)
