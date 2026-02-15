@@ -1,14 +1,25 @@
 .container {
+  position: relative;
   width: 380px;
   padding: 24px 20px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Corner logo */
+.corner-logo {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
 /* App title */
 .app-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Cedarville Cursive', cursive;
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 400;
   text-align: center;
   letter-spacing: 2px;
   color: #c4a0aa;
@@ -82,7 +93,7 @@
 }
 
 .product-name {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Lora', Georgia, serif;
   font-size: 17px;
   font-weight: 600;
   margin: 0 0 4px;
@@ -240,7 +251,7 @@
   min-width: 0;
   font-size: 13px;
   font-weight: 600;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Lora', Georgia, serif;
 }
 
 .category-weight {

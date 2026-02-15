@@ -11,6 +11,11 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "index.html"
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "BTB_logo.png",
+      "48": "BTB_logo.png",
+      "128": "BTB_logo.png"
+    }
   }
 }

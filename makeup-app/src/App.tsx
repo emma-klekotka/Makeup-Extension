@@ -36,12 +36,6 @@ function getScoreColor(score: number): string {
   return '#c4868a'
 }
 
-function getScoreLabel(score: number): string {
-  if (score > 75) return 'High'
-  if (score > 50) return 'Medium'
-  return 'Low'
-}
-
 function getCategoryEmoji(category: string): string {
   if (category.includes('Supply Chain')) return '🔗'
   if (category.includes('Certification')) return '🏅'
@@ -78,6 +72,7 @@ function App() {
   if (loading) {
     return (
       <div className="container">
+        <img className="corner-logo" src="/BTB_logo.png" alt="BTB Logo" />
         <h1 className="app-title">Behind the Blush</h1>
         <div className="loading">
           <div className="spinner" />
@@ -90,6 +85,7 @@ function App() {
   if (!result) {
     return (
       <div className="container">
+        <img className="corner-logo" src="/BTB_logo.png" alt="BTB Logo" />
         <h1 className="app-title">Behind the Blush</h1>
         {geminiResponse && geminiResponse.startsWith('Error:') ? (
           <p className="error-msg">{geminiResponse}</p>
@@ -102,6 +98,7 @@ function App() {
 
   return (
     <div className="container">
+      <img className="corner-logo" src="/BTB_logo.png" alt="BTB Logo" />
       <h1 className="app-title">Behind the Blush</h1>
       <div className="product-header">
         <img
