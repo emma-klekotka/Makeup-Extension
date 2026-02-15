@@ -108,100 +108,35 @@
   text-transform: uppercase;
 }
 
-/* Score meter */
-.meter-section {
-  margin-bottom: 24px;
-}
-
-.score-title {
-  text-align: center;
-  font-size: 11px;
-  color: #a09496;
-  margin: 0 0 6px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  font-weight: 500;
-}
-
-.meter-score-display {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 3px;
-  margin-bottom: 14px;
-}
-
-.meter-score-number {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.meter-score-out-of {
-  font-size: 14px;
-  color: #a09496;
-}
-
-.meter-track {
-  position: relative;
-  display: flex;
-  height: 28px;
-  border-radius: 6px;
-  overflow: visible;
-  margin-bottom: 4px;
-}
-
-.meter-zone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.meter-zone--low {
-  flex: 50;
-  background: rgba(196, 134, 138, 0.25);
-  color: #c4868a;
-  border-radius: 6px 0 0 6px;
-}
-
-.meter-zone--mid {
-  flex: 25;
-  background: rgba(184, 168, 154, 0.25);
-  color: #b8a89a;
-}
-
-.meter-zone--high {
-  flex: 25;
-  background: rgba(138, 154, 123, 0.25);
-  color: #8a9a7b;
-  border-radius: 0 6px 6px 0;
-}
-
-.meter-pointer {
-  position: absolute;
-  top: -10px;
-  transform: translateX(-50%);
+/* Half-moon gauge */
+.gauge-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: left 0.6s ease;
+  margin-bottom: 24px;
 }
 
-.meter-pointer-arrow {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+.gauge-svg {
+  width: 200px;
+  height: 110px;
+  margin-bottom: -4px;
 }
 
-.meter-labels {
-  display: flex;
-  justify-content: space-between;
+.gauge-zone-label {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 9px;
-  color: #a09496;
-  padding: 0 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gauge-tier-label {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+  letter-spacing: 0.5px;
 }
 
 /* Breakdown accordion */
@@ -316,6 +251,58 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Alternatives section */
+.alternatives-section {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.alt-main-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(196, 134, 138, 0.15);
+  border: 1px solid rgba(196, 134, 138, 0.25);
+  border-radius: 10px;
+  color: #c4868a;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.alt-main-btn:hover {
+  background: rgba(196, 134, 138, 0.25);
+}
+
+.char-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.char-btn {
+  padding: 8px 14px;
+  background: rgba(196, 160, 170, 0.1);
+  border: 1px solid rgba(196, 160, 170, 0.2);
+  border-radius: 20px;
+  color: #c4a0aa;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.char-btn:hover {
+  background: rgba(196, 160, 170, 0.2);
+}
+
 /* Alternative recommendation */
 .alternative {
   margin-top: 16px;
@@ -326,7 +313,7 @@
 }
 
 .alternative h3 {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Inter', Georgia, serif;
   font-size: 14px;
   font-weight: 600;
   color: #c4a0aa;
@@ -349,9 +336,6 @@
   .loading p,
   .placeholder-msg,
   .company-name,
-  .score-title,
-  .meter-score-out-of,
-  .meter-labels,
   .category-weight,
   .category-detail {
     color: #8a7a7e;
@@ -368,21 +352,6 @@
 
   .product-photo {
     background: rgba(158, 117, 133, 0.08);
-  }
-
-  .meter-zone--low {
-    background: rgba(176, 107, 111, 0.18);
-    color: #b06b6f;
-  }
-
-  .meter-zone--mid {
-    background: rgba(160, 140, 124, 0.18);
-    color: #a08c7c;
-  }
-
-  .meter-zone--high {
-    background: rgba(110, 130, 96, 0.18);
-    color: #6e8260;
   }
 
   .category-card {
@@ -421,5 +390,25 @@
 
   .error-msg {
     color: #b06b6f;
+  }
+
+  .alt-main-btn {
+    background: rgba(176, 107, 111, 0.1);
+    border-color: rgba(176, 107, 111, 0.2);
+    color: #b06b6f;
+  }
+
+  .alt-main-btn:hover {
+    background: rgba(176, 107, 111, 0.18);
+  }
+
+  .char-btn {
+    background: rgba(158, 117, 133, 0.08);
+    border-color: rgba(158, 117, 133, 0.15);
+    color: #9e7585;
+  }
+
+  .char-btn:hover {
+    background: rgba(158, 117, 133, 0.15);
   }
 }

@@ -1,20 +1,24 @@
 import './App.css'
 import { useCurrentTabUrl } from './getUrl'
-import { generateGeminiResponse } from './geminiCall'
+import { generateGeminiResponse, generateProductCharacteristics, findSimilarSustainableProducts } from './getProductInfo'
 import { useEffect, useState } from 'react'
+
+interface Justification {
+  name: string
+  Score: number
+  Reason: string
+}
 
 interface ProductResult {
   "Product Name": string
-  "Company name": string
-  "Photo": string
-  "Total Cruelty-Free Score": string
-  "Breakdown": Record<string, string>
-  "Alternative Recommendation": string
+  "Product Image": string
+  "Company": string
+  "Overall Score": number
+  "Justification": Justification[]
 }
 
 function parseResponse(raw: string): ProductResult | null {
   try {
-    // Strip markdown code fences if present
     let cleaned = raw.trim()
     if (cleaned.startsWith('```')) {
       cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '')
@@ -25,24 +29,16 @@ function parseResponse(raw: string): ProductResult | null {
   }
 }
 
-function getScoreNumber(scoreStr: string): number {
-  const match = scoreStr.match(/(\d+)\/100/)
-  return match ? parseInt(match[1], 10) : 0
-}
-
 function getScoreColor(score: number): string {
   if (score > 75) return '#8a9a7b'
   if (score > 50) return '#b8a89a'
   return '#c4868a'
 }
 
-function getCategoryEmoji(category: string): string {
-  if (category.includes('Supply Chain')) return '🔗'
-  if (category.includes('Certification')) return '🏅'
-  if (category.includes('Market')) return '🌍'
-  if (category.includes('Ownership')) return '🏢'
-  if (category.includes('Vegan')) return '🌱'
-  return '📋'
+function getScoreLabel(score: number): string {
+  if (score > 75) return 'Great Choice!'
+  if (score > 50) return 'Getting There'
+  return 'Greenwashed Garbage'
 }
 
 function App() {
@@ -50,6 +46,46 @@ function App() {
   const [geminiResponse, setGeminiResponse] = useState<string | null>('')
   const [loading, setLoading] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [characteristics, setCharacteristics] = useState<string[] | null>(null)
+  const [loadingCharacteristics, setLoadingCharacteristics] = useState(false)
+  const [alternativeResult, setAlternativeResult] = useState<string | null>(null)
+  const [loadingAlternative, setLoadingAlternative] = useState(false)
+
+  const handleSeeAlternatives = async () => {
+    if (!result) return
+    setLoadingCharacteristics(true)
+    try {
+      const raw = await generateProductCharacteristics(result["Product Name"])
+      let cleaned = raw?.trim() || ''
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '')
+      }
+      const parsed = JSON.parse(cleaned)
+      setCharacteristics([
+        parsed["Characteristic 1"],
+        parsed["Characteristic 2"],
+        parsed["Characteristic 3"],
+      ])
+    } catch (e) {
+      console.error('Failed to get characteristics:', e)
+    } finally {
+      setLoadingCharacteristics(false)
+    }
+  }
+
+  const handleSelectCharacteristic = async (characteristic: string) => {
+    if (!url) return
+    setLoadingAlternative(true)
+    try {
+      const raw = await findSimilarSustainableProducts(url, characteristic)
+      setAlternativeResult(raw || 'No alternative found.')
+    } catch (e) {
+      console.error('Failed to find alternative:', e)
+      setAlternativeResult('Error finding alternative.')
+    } finally {
+      setLoadingAlternative(false)
+    }
+  }
 
   useEffect(() => {
     if (url) {
@@ -67,7 +103,7 @@ function App() {
   }, [url])
 
   const result = geminiResponse ? parseResponse(geminiResponse) : null
-  const totalScore = result ? getScoreNumber(result["Total Cruelty-Free Score"]) : 0
+  const totalScore = result ? result["Overall Score"] : 0
 
   if (loading) {
     return (
@@ -103,72 +139,82 @@ function App() {
       <div className="product-header">
         <img
           className="product-photo"
-          src={result["Photo"]}
+          src={result["Product Image"]}
           alt={result["Product Name"]}
         />
         <div className="product-info">
           <h1 className="product-name">{result["Product Name"]}</h1>
-          <p className="company-name">{result["Company name"]}</p>
+          <p className="company-name">{result["Company"]}</p>
         </div>
       </div>
 
-      <div className="meter-section">
-        <p className="score-title">Cruelty-Free Score</p>
-        <div className="meter-score-display">
-          <span className="meter-score-number" style={{ color: getScoreColor(totalScore) }}>
-            {totalScore}
-          </span>
-          <span className="meter-score-out-of">/ 100</span>
-        </div>
-        <div className="meter-track">
-          <div className="meter-zone meter-zone--low">Low</div>
-          <div className="meter-zone meter-zone--mid">Medium</div>
-          <div className="meter-zone meter-zone--high">High</div>
-          <div
-            className="meter-pointer"
-            style={{ left: `${totalScore}%` }}
-          >
-            <svg className="meter-pointer-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none">
-              <path d="M6 8L0 0h12L6 8z" fill={getScoreColor(totalScore)} />
+      <div className="gauge-section">
+        {(() => {
+          const r = 80
+          const cx = 100
+          const cy = 90
+          const needleAngle = -180 + (totalScore / 100) * 180
+          const needleLen = r - 10
+          const needleRad = (needleAngle * Math.PI) / 180
+          const nx = cx + needleLen * Math.cos(needleRad)
+          const ny = cy + needleLen * Math.sin(needleRad)
+
+          const arcPoint = (angle: number) => {
+            const rad = ((-180 + angle) * Math.PI) / 180
+            return `${cx + r * Math.cos(rad)},${cy + r * Math.sin(rad)}`
+          }
+
+          return (
+            <svg className="gauge-svg" viewBox="0 0 200 110">
+              <path
+                d={`M ${arcPoint(0)} A ${r} ${r} 0 0 1 ${arcPoint(90)}`}
+                fill="none" stroke="#c4868a" strokeWidth="14" strokeLinecap="butt" opacity="0.35"
+              />
+              <path
+                d={`M ${arcPoint(90)} A ${r} ${r} 0 0 1 ${arcPoint(135)}`}
+                fill="none" stroke="#987f8f" strokeWidth="14" strokeLinecap="butt" opacity="0.35"
+              />
+              <path
+                d={`M ${arcPoint(135)} A ${r} ${r} 0 0 1 ${arcPoint(180)}`}
+                fill="none" stroke="#60535b" strokeWidth="14" strokeLinecap="butt" opacity="0.35"
+              />
+              <line
+                x1={cx} y1={cy} x2={nx} y2={ny}
+                stroke={getScoreColor(totalScore)}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+              <circle cx={cx} cy={cy} r="4" fill={getScoreColor(totalScore)} />
             </svg>
-          </div>
-        </div>
-        <div className="meter-labels">
-          <span>0</span>
-          <span>50</span>
-          <span>75</span>
-          <span>100</span>
-        </div>
+          )
+        })()}
+        <p className="gauge-tier-label" style={{ color: getScoreColor(totalScore) }}>
+          {getScoreLabel(totalScore)}
+        </p>
       </div>
 
       <div className="breakdown">
-        {Object.entries(result["Breakdown"]).map(([category, detail]) => {
-          const catScore = getScoreNumber(detail)
-          const justification = detail.replace(/^\d+\/100:\s*/, '')
-          const catLabel = category.replace(/\s*\(\d+%\)/, '')
-          const weight = category.match(/\((\d+%)\)/)?.[1] || ''
-          const isOpen = expandedCategories.has(category)
+        {result["Justification"].map((item) => {
+          const isOpen = expandedCategories.has(item.name)
 
           const toggleCategory = () => {
             setExpandedCategories(prev => {
               const next = new Set(prev)
-              if (next.has(category)) next.delete(category)
-              else next.add(category)
+              if (next.has(item.name)) next.delete(item.name)
+              else next.add(item.name)
               return next
             })
           }
 
           return (
-            <div className={`category-card ${isOpen ? 'category-card--open' : ''}`} key={category}>
+            <div className={`category-card ${isOpen ? 'category-card--open' : ''}`} key={item.name}>
               <button className="category-toggle" onClick={toggleCategory}>
-                <span className="category-emoji">{getCategoryEmoji(category)}</span>
-                <span className="category-name">{catLabel}</span>
-                {weight && <span className="category-weight">{weight}</span>}
+                <span className="category-name">{item.name}</span>
                 <span
                   className="category-score"
-                  style={{ color: getScoreColor(catScore) }}
+                  style={{ color: getScoreColor(item.Score) }}
                 >
-                  {catScore}/100
+                  {item.Score}/100
                 </span>
                 <svg className={`category-chevron ${isOpen ? 'category-chevron--open' : ''}`} width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -180,12 +226,12 @@ function App() {
                     <div
                       className="category-bar-fill"
                       style={{
-                        width: `${catScore}%`,
-                        backgroundColor: getScoreColor(catScore),
+                        width: `${item.Score}%`,
+                        backgroundColor: getScoreColor(item.Score),
                       }}
                     />
                   </div>
-                  <p className="category-detail">{justification}</p>
+                  <p className="category-detail">{item.Reason}</p>
                 </div>
               </div>
             </div>
@@ -193,13 +239,50 @@ function App() {
         })}
       </div>
 
-      {result["Alternative Recommendation"] &&
-        !result["Alternative Recommendation"].startsWith('N/A') && (
-          <div className="alternative">
-            <h3>Recommended Alternative</h3>
-            <p>{result["Alternative Recommendation"]}</p>
-          </div>
-        )}
+      {totalScore < 75 && (
+        <div className="alternatives-section">
+          {!characteristics && !loadingCharacteristics && (
+            <button className="alt-main-btn" onClick={handleSeeAlternatives}>
+              See Healthier Alternatives
+            </button>
+          )}
+
+          {loadingCharacteristics && (
+            <div className="loading">
+              <div className="spinner" />
+              <p>Finding characteristics...</p>
+            </div>
+          )}
+
+          {characteristics && !alternativeResult && !loadingAlternative && (
+            <div className="char-buttons">
+              {characteristics.map((char) => (
+                <button
+                  key={char}
+                  className="char-btn"
+                  onClick={() => handleSelectCharacteristic(char)}
+                >
+                  {char}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {loadingAlternative && (
+            <div className="loading">
+              <div className="spinner" />
+              <p>Searching for alternatives...</p>
+            </div>
+          )}
+
+          {alternativeResult && (
+            <div className="alternative">
+              <h3>Healthier Alternative</h3>
+              <p>{alternativeResult}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
