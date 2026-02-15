@@ -1,6 +1,6 @@
 import './App.css'
 import { useCurrentTabUrl } from './getUrl'
-import { generateGeminiResponse } from './getProductInfo'
+import { generateGeminiResponse, generateProductCharacteristics, findSimilarSustainableProducts } from './getProductInfo'
 import { useEffect, useState } from 'react'
 
 interface Justification {
@@ -46,6 +46,46 @@ function App() {
   const [geminiResponse, setGeminiResponse] = useState<string | null>('')
   const [loading, setLoading] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [characteristics, setCharacteristics] = useState<string[] | null>(null)
+  const [loadingCharacteristics, setLoadingCharacteristics] = useState(false)
+  const [alternativeResult, setAlternativeResult] = useState<string | null>(null)
+  const [loadingAlternative, setLoadingAlternative] = useState(false)
+
+  const handleSeeAlternatives = async () => {
+    if (!result) return
+    setLoadingCharacteristics(true)
+    try {
+      const raw = await generateProductCharacteristics(result["Product Name"])
+      let cleaned = raw?.trim() || ''
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '')
+      }
+      const parsed = JSON.parse(cleaned)
+      setCharacteristics([
+        parsed["Characteristic 1"],
+        parsed["Characteristic 2"],
+        parsed["Characteristic 3"],
+      ])
+    } catch (e) {
+      console.error('Failed to get characteristics:', e)
+    } finally {
+      setLoadingCharacteristics(false)
+    }
+  }
+
+  const handleSelectCharacteristic = async (characteristic: string) => {
+    if (!url) return
+    setLoadingAlternative(true)
+    try {
+      const raw = await findSimilarSustainableProducts(url, characteristic)
+      setAlternativeResult(raw || 'No alternative found.')
+    } catch (e) {
+      console.error('Failed to find alternative:', e)
+      setAlternativeResult('Error finding alternative.')
+    } finally {
+      setLoadingAlternative(false)
+    }
+  }
 
   useEffect(() => {
     if (url) {
@@ -195,6 +235,51 @@ function App() {
           )
         })}
       </div>
+
+      {totalScore < 75 && (
+        <div className="alternatives-section">
+          {!characteristics && !loadingCharacteristics && (
+            <button className="alt-main-btn" onClick={handleSeeAlternatives}>
+              See Healthier Alternatives
+            </button>
+          )}
+
+          {loadingCharacteristics && (
+            <div className="loading">
+              <div className="spinner" />
+              <p>Finding characteristics...</p>
+            </div>
+          )}
+
+          {characteristics && !alternativeResult && !loadingAlternative && (
+            <div className="char-buttons">
+              {characteristics.map((char) => (
+                <button
+                  key={char}
+                  className="char-btn"
+                  onClick={() => handleSelectCharacteristic(char)}
+                >
+                  {char}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {loadingAlternative && (
+            <div className="loading">
+              <div className="spinner" />
+              <p>Searching for alternatives...</p>
+            </div>
+          )}
+
+          {alternativeResult && (
+            <div className="alternative">
+              <h3>Healthier Alternative</h3>
+              <p>{alternativeResult}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
