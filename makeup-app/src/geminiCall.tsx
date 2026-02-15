@@ -67,3 +67,17 @@ export async function findSimilarSustainableProducts(url: string, characteristic
   });
   return response.text;
 }
+
+// A function call to the Gemini API that takes an JSON EWG report and returns a 
+// 3 sentence description of the product's environmental friendliness and human health impacts
+export async function generateIngredientDescription(ewgReport: string) {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `can you give us a concise 3 sentence description about the
+     environmental friendliness and human health impacts of these ingredients based off 
+     of the following JSON. Can you emphasize specific ingredients that are beneficial 
+     (if any) and harmful (if any). Can you make your response easy to understand for 
+     someone who has not seen this JSON? Here is the JSON: ${ewgReport}`
+  });
+  return response.text;
+}

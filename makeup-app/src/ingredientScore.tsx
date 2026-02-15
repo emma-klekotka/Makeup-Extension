@@ -45,6 +45,8 @@ export async function getEWGReport(text: string): Promise<unknown> {
   return data
 }
 
+// takes a JSON from EWG Report and returns 
+
 
 
 
