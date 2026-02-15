@@ -6,6 +6,10 @@
     "activeTab",
     "tabs"
   ],
+  "host_permissions": [
+    "https://www.leapingbunny.org/*",
+    "https://ethicy.com/*"
+  ],
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"
