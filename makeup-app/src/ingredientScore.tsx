@@ -49,6 +49,7 @@ export async function getEWGReport(text: string): Promise<unknown> {
   })
 }
 
+// takes an EWG report and returns a score (normalized to 100)
 export function normalizeEWGScore(score: string): number {
   const numericScore = Number(score.split("_")[0])
 
