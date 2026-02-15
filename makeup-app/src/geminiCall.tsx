@@ -63,7 +63,8 @@ export async function generateProductCharacteristics(productDescription: string)
 export async function findSimilarSustainableProducts(url: string, characteristic: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `${url}: Using the URL provided, can you find a similar product that is also ${characteristic} and is more sustainable?`
+    contents: `${url}: Using the URL provided, can you find a similar product that is also ${characteristic} 
+    and is more sustainable? Can you provide this answer as a JSON with the following format: { "Recommended Products": list of URLs }`
   });
   return response.text;
 }
