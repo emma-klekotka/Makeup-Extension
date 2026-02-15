@@ -1,30 +1,3 @@
-// Simulated Gemini response
-// export const GEMINI_RESPONSE = {
-//   text: JSON.stringify({
-//     ingredients: ["Water", "Sugar"],
-//   }),
-// } as const
-
-// // Percent-encode helper
-// export function percentEncode(input: string): string {
-//   return encodeURIComponent(input)
-// }
-
-// // Parse Gemini response
-// const parsed = JSON.parse(GEMINI_RESPONSE.text) as {
-//   ingredients: string[]
-// }
-
-// // Build ingredient string WITH spaces preserved
-// // Join with ", " so it becomes "%2C%20" after encoding
-// const ingredientString = parsed.ingredients
-//   .map(i => i.toLowerCase()) // keep spaces inside words
-//   .join(", ")
-
-// // Encode for URL usage
-// const encoded = percentEncode(ingredientString)
-
-// console.log(encoded)
 
 const EWG_BASE_URL =
   "https://api.ewg.org/skin_deep/v4/build_your_own?uuid=skindeepBuildYourOwn&ingredients="
@@ -45,8 +18,15 @@ export async function getEWGReport(text: string): Promise<unknown> {
   return data
 }
 
-// takes a JSON from EWG Report and returns 
+export function normalizeEWGScore(score: string): number {
+  const numericScore = Number(score.split("_")[0])
 
+  if (Number.isNaN(numericScore) || numericScore < 1 || numericScore > 10) {
+    throw new Error(`Invalid EWG score: ${score}`)
+  }
 
+  const normalized = ((10 - numericScore) / 9) * 99 + 1
 
+  return Math.round(normalized)
+}
 
