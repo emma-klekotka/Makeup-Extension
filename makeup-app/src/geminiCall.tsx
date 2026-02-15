@@ -8,40 +8,17 @@ const ai = new GoogleGenAI({ apiKey: VITE_GEMINI_API_KEY });
 export async function generateGeminiResponse(url: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Role: You are a Cruelty-Free Beauty Auditor. Your goal is to evaluate a beauty product based on its URL and generate a "Cruelty-Free Score" from 0 to 100.
-
-Task: > 1. Visit the provided URL: ${url}. Extract the product name, company name, and a photo of the product from this page.
-
-2. Research the brand's current animal testing policy, its parent company status, its third-party certifications (Leaping Bunny, PETA, etc.), and its retail presence in countries with mandatory testing laws (e.g., physical stores in mainland China).
-
-3. Use the following weighted formula to calculate the score:
-
-
-
-Supply Chain Depth (30%): Does the brand verify all raw ingredients? (100 = FCOD implemented, 0 = No verification).
-
-Certification (25%): 100 = Leaping Bunny, 60 = PETA, 0 = None.
-
-Market Compliance (20%): 100 = No physical sales in testing markets, 0 = Active physical retail in China.
-
-Ownership (15%): 100 = Independent, 50 = Owned by testing parent, 0 = Tests itself.
-
-Vegan Status (10%): 100 = 100% Vegan product/brand, 0 = Contains animal by-products.
-
-Output Format:
+    contents: `Role: You are a consumer researching beauty products. Follow the instructions carefully and provide the requested information in the specified format.
+Task: 1. Analyze the following product URL. Find the Product name, company, a photo of the product and the list of ingredients. Please pull only from this page and do not make assumptions.
+output format:
 JSON {
-
-Product Name: name of product
-
-Company name: name of company producing product
-
-Photo: provide a photo of the product
-
-Total Cruelty-Free Score: [Score]/100
-
-Breakdown: Provide a brief 1-sentence justification for the points awarded in each of the 5 categories.
-
-Alternative Recommendation: If the score is below 80, suggest one "Gold Standard" (90+ score) alternative product in the same category. }`,
+  "Product Name": string,
+  "Company name": string,
+  "Photo": string (URL),
+  "Ingredients": string[]
+}
+URL: ${url}
+}`,
   });
   console.log("Gemini API response:", response);
   return response.text;
@@ -69,16 +46,32 @@ export async function findSimilarSustainableProducts(url: string, characteristic
   return response.text;
 }
 
-// A function call to the Gemini API that takes an JSON EWG report and returns a 
+// A function call to the Gemini API that returns the top 2 manufacturing countries for a company
+export async function getManufacturingCountries(companyName: string): Promise<string[]> {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `What are the top 2 countries where ${companyName} manufactures its products?
+    Respond with ONLY a JSON array of exactly 2 country names, e.g. ["China", "India"]. No other text.`
+  });
+  try {
+    const text = response.text ?? "[]"
+    const cleaned = text.replace(/```json\s*/g, "").replace(/```/g, "").trim()
+    return JSON.parse(cleaned) as string[]
+  } catch {
+    return []
+  }
+}
+
+// A function call to the Gemini API that takes an JSON EWG report and returns a
 // 3 sentence description of the product's environmental friendliness and human health impacts
 export async function generateIngredientDescription(ewgReport: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `can you give us a concise 3 sentence description about the
      environmental friendliness and human health impacts of these ingredients based off 
-     of the following JSON. Can you emphasize specific ingredients that are beneficial 
-     (if any) and harmful (if any). Can you make your response easy to understand for 
-     someone who has not seen this JSON? Here is the JSON: ${ewgReport}`
+     of the following JSON. Emphasize specific ingredients that are beneficial 
+     (if any) and harmful (if any) and make sure it is understandable for somone with little knowledge of 
+     the ingredients. Your word maximum is 70 words. Here is the JSON: ${ewgReport}`
   });
   return response.text;
 }

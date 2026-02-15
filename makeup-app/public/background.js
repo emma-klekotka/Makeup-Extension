@@ -39,6 +39,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'FETCH_EWG') {
+    fetch(message.url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`EWG request failed with status ${res.status}`);
+        return res.json();
+      })
+      .then((data) => sendResponse({ success: true, data }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (message.type === 'FETCH_DOL') {
+    fetch(message.url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`DOL request failed with status ${res.status}`);
+        return res.text();
+      })
+      .then((text) => {
+        if (!text || text.trim() === '') {
+          sendResponse({ success: true, data: { data: [] } });
+        } else {
+          sendResponse({ success: true, data: JSON.parse(text) });
+        }
+      })
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
   if (message.type === 'CHECK_VEGAN') {
     fetchAllVeganBrands()
       .then((brands) => {

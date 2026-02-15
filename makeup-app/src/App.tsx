@@ -1,29 +1,55 @@
 import './App.css'
 import { useCurrentTabUrl } from './getUrl'
 import { generateGeminiResponse, generateProductCharacteristics, findSimilarSustainableProducts } from './getProductInfo'
+import { scoreProduct } from './scoreProduct'
 import { useEffect, useState } from 'react'
 
 interface Justification {
-  name: string
-  Score: number
+  Category: string
+  Score: number | string
   Reason: string
 }
 
 interface ProductResult {
   "Product Name": string
-  "Product Image": string
-  "Company": string
-  "Overall Score": number
+  "Company name": string
+  "Photo": string
+  "Total Sustainability Score": string
   "Justification": Justification[]
 }
 
-function parseResponse(raw: string): ProductResult | null {
+interface AlternativeProduct {
+  "Product Name": string
+  "Company": string
+  "Image URL": string
+  "Price": string
+  "Link": string
+}
+
+function parseGeminiResponse(raw: string) {
   try {
-    let cleaned = raw.trim()
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '')
+    // Try extracting JSON from a ```json ... ``` code block first
+    const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      return JSON.parse(codeBlockMatch[1].trim()) as {
+        "Product Name": string
+        "Company name": string
+        "Photo": string
+        "Ingredients": string[]
+      }
     }
-    return JSON.parse(cleaned)
+    // Fall back to finding the first { ... } in the response
+    const braceStart = raw.indexOf('{')
+    const braceEnd = raw.lastIndexOf('}')
+    if (braceStart !== -1 && braceEnd > braceStart) {
+      return JSON.parse(raw.slice(braceStart, braceEnd + 1)) as {
+        "Product Name": string
+        "Company name": string
+        "Photo": string
+        "Ingredients": string[]
+      }
+    }
+    return null
   } catch {
     return null
   }
@@ -43,12 +69,14 @@ function getScoreLabel(score: number): string {
 
 function App() {
   const url = useCurrentTabUrl()
-  const [geminiResponse, setGeminiResponse] = useState<string | null>('')
+  const [result, setResult] = useState<ProductResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [characteristics, setCharacteristics] = useState<string[] | null>(null)
   const [loadingCharacteristics, setLoadingCharacteristics] = useState(false)
-  const [alternativeResult, setAlternativeResult] = useState<string | null>(null)
+  const [alternativeResult, setAlternativeResult] = useState<AlternativeProduct | null>(null)
+  const [alternativeError, setAlternativeError] = useState<string | null>(null)
   const [loadingAlternative, setLoadingAlternative] = useState(false)
 
   const handleSeeAlternatives = async () => {
@@ -76,12 +104,18 @@ function App() {
   const handleSelectCharacteristic = async (characteristic: string) => {
     if (!url) return
     setLoadingAlternative(true)
+    setAlternativeError(null)
     try {
       const raw = await findSimilarSustainableProducts(url, characteristic)
-      setAlternativeResult(raw || 'No alternative found.')
+      let cleaned = raw?.trim() || ''
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '')
+      }
+      const parsed = JSON.parse(cleaned) as AlternativeProduct
+      setAlternativeResult(parsed)
     } catch (e) {
       console.error('Failed to find alternative:', e)
-      setAlternativeResult('Error finding alternative.')
+      setAlternativeError('No alternative found.')
     } finally {
       setLoadingAlternative(false)
     }
@@ -90,20 +124,28 @@ function App() {
   useEffect(() => {
     if (url) {
       setLoading(true)
+      setError(null)
+      setResult(null)
       generateGeminiResponse(url)
         .then(response => {
-          setGeminiResponse(response || 'No response from Gemini API')
+          const productInfo = parseGeminiResponse(response || '')
+          if (!productInfo) {
+            throw new Error('Failed to parse product info from page')
+          }
+          return scoreProduct(productInfo)
         })
-        .catch(error => {
-          console.error('Gemini API error:', error)
-          setGeminiResponse(`Error: ${error.message}`)
+        .then(scored => {
+          setResult(scored)
+        })
+        .catch(err => {
+          console.error('Error:', err)
+          setError(`Error: ${err.message}`)
         })
         .finally(() => setLoading(false))
     }
   }, [url])
 
-  const result = geminiResponse ? parseResponse(geminiResponse) : null
-  const totalScore = result ? result["Overall Score"] : 0
+  const totalScore = result ? Number(result["Total Sustainability Score"]) : 0
 
   if (loading) {
     return (
@@ -123,8 +165,8 @@ function App() {
       <div className="container">
         <img className="corner-logo" src="/BTB_logo.png" alt="BTB Logo" />
         <h1 className="app-title">Behind the Blush</h1>
-        {geminiResponse && geminiResponse.startsWith('Error:') ? (
-          <p className="error-msg">{geminiResponse}</p>
+        {error ? (
+          <p className="error-msg">{error}</p>
         ) : (
           <p className="placeholder-msg">Open a product page to analyze it</p>
         )}
@@ -139,12 +181,12 @@ function App() {
       <div className="product-header">
         <img
           className="product-photo"
-          src={result["Product Image"]}
+          src={result["Photo"]}
           alt={result["Product Name"]}
         />
         <div className="product-info">
           <h1 className="product-name">{result["Product Name"]}</h1>
-          <p className="company-name">{result["Company"]}</p>
+          <p className="company-name">{result["Company name"]}</p>
         </div>
       </div>
 
@@ -195,26 +237,27 @@ function App() {
 
       <div className="breakdown">
         {(result["Justification"] ?? []).map((item) => {
-          const isOpen = expandedCategories.has(item.name)
+          const isOpen = expandedCategories.has(item.Category)
+          const numericScore = typeof item.Score === "number" ? item.Score : null
 
           const toggleCategory = () => {
             setExpandedCategories(prev => {
               const next = new Set(prev)
-              if (next.has(item.name)) next.delete(item.name)
-              else next.add(item.name)
+              if (next.has(item.Category)) next.delete(item.Category)
+              else next.add(item.Category)
               return next
             })
           }
 
           return (
-            <div className={`category-card ${isOpen ? 'category-card--open' : ''}`} key={item.name}>
+            <div className={`category-card ${isOpen ? 'category-card--open' : ''}`} key={item.Category}>
               <button className="category-toggle" onClick={toggleCategory}>
-                <span className="category-name">{item.name}</span>
+                <span className="category-name">{item.Category}</span>
                 <span
                   className="category-score"
-                  style={{ color: getScoreColor(item.Score) }}
+                  style={{ color: numericScore !== null ? getScoreColor(numericScore) : '#999' }}
                 >
-                  {item.Score}/100
+                  {numericScore !== null ? `${numericScore}/100` : 'N/A'}
                 </span>
                 <svg className={`category-chevron ${isOpen ? 'category-chevron--open' : ''}`} width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -226,8 +269,8 @@ function App() {
                     <div
                       className="category-bar-fill"
                       style={{
-                        width: `${item.Score}%`,
-                        backgroundColor: getScoreColor(item.Score),
+                        width: numericScore !== null ? `${numericScore}%` : '0%',
+                        backgroundColor: numericScore !== null ? getScoreColor(numericScore) : '#999',
                       }}
                     />
                   </div>
@@ -275,10 +318,35 @@ function App() {
             </div>
           )}
 
+          {alternativeError && (
+            <div className="alternative">
+              <p className="alt-error">{alternativeError}</p>
+            </div>
+          )}
+
           {alternativeResult && (
             <div className="alternative">
               <h3>Healthier Alternative</h3>
-              <p>{alternativeResult}</p>
+              <div className="alt-card">
+                <img
+                  className="alt-card-image"
+                  src={alternativeResult["Image URL"]}
+                  alt={alternativeResult["Product Name"]}
+                />
+                <div className="alt-card-info">
+                  <p className="alt-card-name">{alternativeResult["Product Name"]}</p>
+                  <p className="alt-card-company">{alternativeResult["Company"]}</p>
+                  <p className="alt-card-price">{alternativeResult["Price"]}</p>
+                  <a
+                    className="alt-card-link"
+                    href={alternativeResult["Link"]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Product
+                  </a>
+                </div>
+              </div>
             </div>
           )}
         </div>

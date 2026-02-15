@@ -97,10 +97,11 @@ function fuzzyMatch(query, brandList) {
       return { found: true, bestMatch: brand, score: 1.0 };
     }
 
-    // Substring check (either direction)
-    if (normBrand.includes(normQuery) || normQuery.includes(normBrand)) {
-      const subScore = Math.min(normQuery.length, normBrand.length) /
-        Math.max(normQuery.length, normBrand.length);
+    // Substring check — only if the shorter string is at least 4 chars
+    // to avoid tiny matches like "CL" matching "clinique"
+    const shorter = Math.min(normQuery.length, normBrand.length);
+    if (shorter >= 4 && (normBrand.includes(normQuery) || normQuery.includes(normBrand))) {
+      const subScore = shorter / Math.max(normQuery.length, normBrand.length);
       // Boost substring matches
       const boosted = 0.5 + subScore * 0.5;
       if (boosted > bestScore) {
@@ -119,7 +120,7 @@ function fuzzyMatch(query, brandList) {
   }
 
   return {
-    found: bestScore >= 0.6,
+    found: bestScore >= 0.8,
     bestMatch,
     score: Math.round(bestScore * 100) / 100,
   };

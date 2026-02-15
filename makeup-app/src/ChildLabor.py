@@ -62,8 +62,8 @@ def countries_to_score(countries):
         description += " using Department of Labor statistics."
 
     report = {
-        "labor_score": final_score,
-        "labor_description": description
+        "score": final_score,
+        "reason": description
     }
     
     return report

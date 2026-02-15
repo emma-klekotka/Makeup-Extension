@@ -46,12 +46,13 @@ export async function generateProductCharacteristics(productDescription: string)
 export async function findSimilarSustainableProducts(url: string, characteristic: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `${url}: Using the URL provided, can you find a similar product that is also ${characteristic} and is more sustainable? 
-    Please provide me with the name of the product, the company, an image URL, and a link to the product page. If you can't find a similar product that is more sustainable, please say "No alternative found." Please output it in the following format:
+    contents: `${url}: Using the URL provided, can you find a similar product that is also ${characteristic} and is more sustainable?
+    Please provide me with the name of the product, the company, an image URL, the price, and a link to the product page. If you can't find a similar product that is more sustainable, please say "No alternative found." Please output it in the following format:
     JSON{
       "Product Name": string,
       "Company": string,
       "Image URL": string,
+      "Price": string,
       "Link": string
     }`
   });
